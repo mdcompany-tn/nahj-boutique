@@ -141,7 +141,6 @@ export default function Home() {
     <div className="home">
       <section className="hero">
         <div className="hero-media">
-          <img className="hero-backdrop" src={img(hero.image, 1800)} alt="" aria-hidden="true" />
           <div className="hero-live">
             <img src={img(hero.image, 1800)} alt="" fetchPriority="high" />
           </div>
