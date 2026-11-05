@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { StoreProvider } from "./store";
+import "./fonts.css";
 import "./styles.css";
 
 // GitHub Pages serves a project site from /<repo>/, so the router must know the prefix.
