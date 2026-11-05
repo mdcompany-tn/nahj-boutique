@@ -17,7 +17,11 @@ function Announcements() {
     const id = setInterval(() => setI((x) => (x + 1) % list.length), 4200);
     return () => clearInterval(id);
   }, [list.length]);
-  if (!list.length) return null;
+  if (!list.length) {
+    // Reserve the bar's height while the store data loads, otherwise the whole
+    // page jumps down when the first announcement appears (large layout shift).
+    return data ? null : <div className="announce" aria-hidden="true">&nbsp;</div>;
+  }
   const a = list[i % list.length];
   const text = lang === "ar" && a.textAr ? a.textAr : a.text;
   return (
