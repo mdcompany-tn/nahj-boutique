@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, type Product, type StoreData } from "./api";
+import { useAuth } from "./auth";
 import type { Lang } from "./i18n";
 
 export type CartItem = { variantId: number; productId: number; slug: string; name: string; size: string; color: string; image: string; price: number; qty: number; stock: number };
@@ -24,12 +25,15 @@ function useLocal<T>(key: string, initial: T) {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const { user, ready: authReady } = useAuth();
   const [data, setData] = useState<StoreData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = useLocal<CartItem[]>("nahj.cart", []);
-  const [wishlist, setWishlist] = useLocal<number[]>("nahj.wish", []);
+  // Favorites require an account: they live in Supabase, never in localStorage,
+  // so a guest cannot build a favorites list without signing in.
+  const [wishlist, setWishlist] = useState<number[]>([]);
   const [lang, setLang] = useLocal<Lang>("nahj.lang", "fr");
   const [cartOpen, setCartOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -66,6 +70,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (notify as any)._t = window.setTimeout(() => setToast(null), 2600);
   }, []);
 
+  // Load the signed-in customer's favorites. A guest always has an empty list.
+  useEffect(() => {
+    if (!authReady) return;
+    if (!user) {
+      setWishlist([]);
+      // Drop favorites saved by the old guest-only version of the site.
+      try { localStorage.removeItem("nahj.wish"); } catch { /* ignore */ }
+      return;
+    }
+    let alive = true;
+    api<{ ids: number[] }>("/api/wishlist")
+      .then((r) => { if (alive) setWishlist(Array.isArray(r.ids) ? r.ids : []); })
+      .catch(() => { if (alive) setWishlist([]); });
+    return () => { alive = false; };
+  }, [user, authReady]);
+
+  const toggleWish = useCallback((id: number) => {
+    if (!user) {
+      notify(lang === "ar" ? "سجّل الدخول لإضافة المنتجات إلى المفضلة." : "Connectez-vous pour ajouter aux favoris.");
+      return;
+    }
+    // Optimistic, then reconcile with the server (and revert if the call fails).
+    setWishlist((w) => (w.includes(id) ? w.filter((x) => x !== id) : [...w, id]));
+    api<{ wished: boolean }>("/api/wishlist", { method: "POST", json: { productId: id } })
+      .then((r) => setWishlist((w) => (r.wished ? (w.includes(id) ? w : [...w, id]) : w.filter((x) => x !== id))))
+      .catch(() => setWishlist((w) => (w.includes(id) ? w.filter((x) => x !== id) : [...w, id])));
+  }, [user, lang, notify]);
+
   const value = useMemo<Ctx>(() => ({
     data, products, loading, error, reload,
     cart,
@@ -80,9 +112,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     cartOpen, setCartOpen,
     cartCount: cart.reduce((s, i) => s + i.qty, 0),
     wishlist,
-    toggleWish: (id) => setWishlist((w) => w.includes(id) ? w.filter((x) => x !== id) : [...w, id]),
+    toggleWish,
     lang, setLang, toast, notify,
-  }), [data, products, loading, error, reload, cart, cartOpen, wishlist, lang, toast, notify, setCart, setWishlist, setLang]);
+  }), [data, products, loading, error, reload, cart, cartOpen, wishlist, toggleWish, lang, setLang, toast, notify, setCart]);
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

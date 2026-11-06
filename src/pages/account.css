@@ -1,0 +1,236 @@
+/* Customer account page: login, profile, orders, favorites. */
+
+.acc-wrap {
+  display: grid;
+  gap: 2rem;
+  padding: 0 2rem 5rem;
+  max-width: 1100px;
+}
+
+.acc-loading {
+  padding: 6rem 2rem;
+  text-align: center;
+  opacity: 0.65;
+}
+
+.acc-card {
+  background: #fff8;
+  border: 1px solid #0002;
+  padding: 2rem;
+  max-width: 520px;
+}
+
+.acc-me {
+  max-width: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.acc-email {
+  font-family: "Bodoni Moda", serif;
+  font-size: 1.35rem;
+  margin: 0.1rem 0 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.acc-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #0002;
+}
+
+.acc-tabs button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: -1px;
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.acc-tabs button.on {
+  opacity: 1;
+  border-bottom-color: var(--henna);
+  color: var(--henna);
+}
+
+.acc-link {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.acc-link.inline {
+  display: inline;
+  font-size: inherit;
+  color: var(--henna);
+}
+
+.acc-guest {
+  max-width: 560px;
+}
+
+.acc-guest h2 {
+  margin-top: 0;
+}
+
+/* Signed-out view: form on the left, guest explanation on the right. */
+@media (min-width: 900px) {
+  .acc-wrap-auth {
+    grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+    column-gap: 4rem;
+    align-items: start;
+  }
+
+  .acc-wrap-auth .acc-card {
+    max-width: none;
+  }
+}
+
+.acc-guest-cta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.acc-section {
+  border-top: 1px solid #0002;
+  padding-top: 2rem;
+}
+
+.acc-sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.acc-sec-head h2 {
+  margin: 0;
+}
+
+.acc-orders {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.acc-order {
+  border: 1px solid #0002;
+  background: #fff8;
+}
+
+.acc-order-head {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acc-order-head:hover {
+  background: #00000006;
+}
+
+.acc-order-num {
+  font-family: "Bodoni Moda", serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+
+.acc-order-total {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.acc-order-body {
+  border-top: 1px solid #0002;
+  padding: 1rem;
+}
+
+.acc-pill {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.acc-pill.s-delivered,
+.acc-pill.s-completed {
+  color: #2f6b3f;
+}
+
+.acc-pill.s-cancelled,
+.acc-pill.s-returned {
+  color: var(--henna);
+}
+
+.acc-pill.s-shipped,
+.acc-pill.s-out_for_delivery {
+  color: var(--brass);
+}
+
+.acc-pill.s-pending,
+.acc-pill.s-confirmed,
+.acc-pill.s-processing {
+  color: var(--ink);
+}
+
+.acc-grid {
+  padding: 0;
+}
+
+@media (max-width: 720px) {
+  .acc-wrap {
+    padding: 0 1.25rem 4rem;
+  }
+
+  .acc-card {
+    padding: 1.35rem;
+  }
+
+  .acc-order-head {
+    grid-template-columns: 1fr auto;
+    row-gap: 0.35rem;
+  }
+
+  .acc-order-head .muted,
+  .acc-order-head .acc-pill {
+    grid-column: auto;
+  }
+
+  .acc-order-total {
+    justify-self: end;
+  }
+}

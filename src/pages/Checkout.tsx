@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError, img, money } from "../api";
+import { useAuth } from "../auth";
 import { useStore } from "../store";
 
 type Quote = { subtotal: number; deliveryFee: number; discount: number; total: number; code: string | null; codeError: string | null; problems: string[] };
 
 export default function Checkout() {
   const { cart, data, clearCart, lang } = useStore();
+  const { user } = useAuth();
   const nav = useNavigate();
   const [f, setF] = useState({ customerName: "", phone: "", email: "", governorate: "", city: "", address: "", notes: "" });
   const [code, setCode] = useState("");
@@ -23,6 +25,12 @@ export default function Checkout() {
       .then(setQuote).catch(() => setQuote(null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, f.governorate, applied]);
+
+  // Signed-in customers get their email prefilled (guest checkout still works).
+  useEffect(() => {
+    if (!user?.email) return;
+    setF((prev) => (prev.email ? prev : { ...prev, email: user.email! }));
+  }, [user]);
 
   if (!cart.length) return (
     <div className="state-block tall"><p className="display-sm">Votre panier est vide.</p><Link to="/shop" className="btn">Parcourir la boutique</Link></div>

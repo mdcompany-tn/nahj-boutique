@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Honeypot from "../components/Honeypot";
 import { api, img as cdn, honeypot, money, colorImage as imageFor, productColors, type Product } from "../api";
 import { useStore } from "../store";
+import { useAuth } from "../auth";
 import { t } from "../i18n";
 import ProductCard from "../components/ProductCard";
 import NotFound from "./NotFound";
@@ -74,6 +75,10 @@ function ReviewForm({ productId }: { productId: number }) {
 export default function ProductPage() {
   const { slug } = useParams();
   const { addToCart, setCartOpen, wishlist, toggleWish, lang, notify } = useStore();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  // Favorites require an account: guests are sent to the login page.
+  const onWish = (id: number) => { if (user) toggleWish(id); else navigate("/account"); };
   const [res, setRes] = useState<{ product: Product; reviews: Review[]; related: Product[] } | null>(null);
   const [missing, setMissing] = useState(false);
   const [color, setColor] = useState("");
@@ -177,7 +182,7 @@ export default function ProductPage() {
             <button className="btn btn-grow" onClick={add} disabled={!!variant && variant.stock < 1}>
               {variant && variant.stock < 1 ? t(lang, "soldOut") : t(lang, "addToBag")}
             </button>
-            <button className={`wish-lg ${wished ? "on" : ""}`} onClick={() => toggleWish(p.id)} aria-label="Favori" aria-pressed={wished}>
+            <button className={`wish-lg ${wished ? "on" : ""}`} onClick={() => onWish(p.id)} aria-label="Favori" aria-pressed={wished}>
               <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>
             </button>
           </div>

@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { img, money, totalStock, colorImage as imageFor, type Product } from "../api";
+import { useAuth } from "../auth";
 import { useStore } from "../store";
 import { t } from "../i18n";
 
 export default function ProductCard({ p, index = 0 }: { p: Product; index?: number }) {
   const { wishlist, toggleWish, lang } = useStore();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  // Favorites require an account: guests are sent to the login page.
+  const onWish = () => { if (user) toggleWish(p.id); else navigate("/account"); };
   const stock = totalStock(p);
   const wished = wishlist.includes(p.id);
   const onSale = p.compare_at_price && p.compare_at_price > p.price;
@@ -23,7 +28,7 @@ export default function ProductCard({ p, index = 0 }: { p: Product; index?: numb
           {stock === 0 && <span className="tag tag-ink">{t(lang, "soldOut")}</span>}
         </span>
       </Link>
-      <button className={`wish ${wished ? "on" : ""}`} onClick={() => toggleWish(p.id)} aria-label={wished ? "Retirer des favoris" : "Ajouter aux favoris"} aria-pressed={wished}>
+      <button className={`wish ${wished ? "on" : ""}`} onClick={onWish} aria-label={wished ? "Retirer des favoris" : "Ajouter aux favoris"} aria-pressed={wished}>
         <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>
       </button>
       <div className="pcard-info">

@@ -1517,6 +1517,15 @@ begin
     return public.order_track(replace(v_path, 'orders/', ''), v_query ->> 'phone');
   end if;
 
+  -- Favorites: account only (see 04-accounts.sql).
+  if v_path = 'wishlist' and v_method = 'GET' then
+    return public.wish_list();
+  end if;
+
+  if v_path = 'wishlist' and v_method = 'POST' then
+    return public.wish_toggle((v_body ->> 'productId')::int);
+  end if;
+
   if v_path in ('contact', 'reviews', 'newsletter') and v_method = 'POST' then
     return public.submit_form(v_path, v_body);
   end if;
@@ -1554,6 +1563,7 @@ begin
       and p.proname in (
         'store_data','product_list','product_get','order_quote','order_create',
         'order_track','my_orders','submit_form','price_cart','save_variants',
+        'wish_list','wish_toggle',
         'is_admin','slugify','client_ip','product_json','product_json_admin','order_public_json')
   loop
     execute format('revoke all on function %s from public', f.sig);
