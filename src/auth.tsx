@@ -39,7 +39,7 @@ export function authMessage(raw: string): string {
   // Supabase enforces a cooldown per email address and an hourly cap per project.
   const after = raw.match(/after (\d+) seconds?/i);
   if (after) return `Trop de tentatives. Réessayez dans ${after[1]} seconde${after[1] === "1" ? "" : "s"}.`;
-  if (/email rate limit exceeded|rate limit.*email/i.test(raw)) return "Trop d’emails envoyés pour le moment. Réessayez dans une heure (ou configurez un SMTP).";
+  if (/email rate limit exceeded|rate limit.*email/i.test(raw)) return "Trop d’emails envoyés pour le moment. Réessayez dans une heure.";
   if (/rate limit|too many|security purposes/i.test(raw)) return "Trop de tentatives. Réessayez dans quelques minutes.";
   if (/invalid email|unable to validate email/i.test(raw)) return "Adresse email invalide.";
   if (/signups? not allowed|signup is disabled/i.test(raw)) return "La création de compte est momentanément fermée.";
