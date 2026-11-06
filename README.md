@@ -34,7 +34,7 @@ Boutique statique (Vite + React) hébergée gratuitement sur **GitHub Pages**, a
      propriétaire manuellement pour éviter tout blocage.
 
 5. **Authentication → Users → Add user** :
-   - Email : `owner@example.com` (ou celui défini dans `admin_emails`)
+   - Email : `***********@gmail.com` (ou celui défini dans `admin_emails`)
    - Mot de passe : choisissez-en un solide
    - Cochez **Auto Confirm User**
    - Le trigger SQL ajoute automatiquement ce compte à la table `admins`.
