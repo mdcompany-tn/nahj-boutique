@@ -7,10 +7,14 @@ import { t } from "../i18n";
 
 export default function ProductCard({ p, index = 0 }: { p: Product; index?: number }) {
   const { wishlist, toggleWish, lang } = useStore();
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const navigate = useNavigate();
   // Favorites require an account: guests are sent to the login page.
-  const onWish = () => { if (user) toggleWish(p.id); else navigate("/account"); };
+  const onWish = () => {
+    if (!ready) return;
+    if (user) toggleWish(p.id);
+    else navigate("/account");
+  };
   const stock = totalStock(p);
   const wished = wishlist.includes(p.id);
   const onSale = p.compare_at_price && p.compare_at_price > p.price;

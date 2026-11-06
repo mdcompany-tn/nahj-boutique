@@ -5,8 +5,17 @@ import ProductCard from "../components/ProductCard";
 
 export default function Wishlist() {
   const { products, wishlist } = useStore();
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const list = products.filter((p) => wishlist.includes(p.id));
+
+  if (!ready) {
+    return (
+      <div className="shop">
+        <header className="page-head"><p className="eyebrow">Favoris</p><h1 className="display-xl">Vos coups de cœur</h1></header>
+        <div className="state-block"><p className="muted">Chargement…</p></div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
