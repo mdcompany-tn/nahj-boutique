@@ -23,13 +23,14 @@ Boutique statique (Vite + React) hébergée gratuitement sur **GitHub Pages**, a
    - `supabase/02-api.sql` — API (fonctions SQL) appelée par le site.
    - `supabase/03-auth-storage.sql` — allowlist admin, verrouillage RLS, bucket `media`.
    - `supabase/04-accounts.sql` — comptes clients : table `wishlist` (favoris) + fonctions.
+   - `supabase/05-lockdown.sql` — verrouillage final des droits : seule `public.api()` reste appelable.
 
    Ou, pour un projet vide, exécutez une seule fois `supabase/setup.sql`
-   (les quatre fichiers concaténés).
+   (les cinq fichiers concaténés dans cet ordre).
 
    > Si les tables existent déjà, ne relancez **pas** `01` : exécutez seulement
-   > `02-api.sql`, `03-auth-storage.sql` puis `04-accounts.sql` (les trois sont
-   > ré-exécutables).
+   > `02-api.sql`, `03-auth-storage.sql`, `04-accounts.sql` puis
+   > `05-lockdown.sql` (les quatre sont ré-exécutables).
 
 4. **Authentication → Providers → Email** :
    - Laissez **Allow new users to sign up** **activé** : les clients créent leur
@@ -178,11 +179,21 @@ Le dispatcher SQL reproduit les anciennes routes :
 
 ### Sécurité
 
-- `public.api` est la seule fonction exécutable par `anon` / `authenticated`.
+- `public.api` est la seule fonction exécutable par `anon` / `authenticated` :
+  `05-lockdown.sql` révoque les fonctions internes (`store_data`,
+  `save_variants`, `order_create`, `admin_api`, `handle_new_user`,
+  `wish_list`, `wish_toggle`, helpers JSON…) **de `anon` et `authenticated`**,
+  et pas seulement de `public` — Supabase accorde EXECUTE directement à ces
+  deux rôles à la création d’une fonction, donc `revoke ... from public` seul
+  ne suffit pas. Seule exception : `public.is_admin()`, exécutable par
+  `authenticated` uniquement, car les policies Storage l’appellent.
 - Toutes les tables ont RLS activé **sans policy** : accès direct bloqué.
   `public.wishlist` a en plus tous ses privilèges révoqués pour `anon` /
   `authenticated` : seules les fonctions `wish_list()` / `wish_toggle()`
   (SECURITY DEFINER) y accèdent, et elles exigent `auth.uid()`.
+- Aucun email admin n’est prérempli dans les scripts : ajoutez le vôtre dans
+  `admin_emails` (avec **Confirm email** désactivé, une adresse connue
+  permettrait à n’importe qui de s’inscrire et de devenir admin).
 - `/admin` vérifie `public.is_admin()` côté serveur (email dans `admin_emails`
   ou ligne dans `admins`), pas seulement côté navigateur.
 - Upload/suppression Storage réservés aux admins ; lecture publique.
