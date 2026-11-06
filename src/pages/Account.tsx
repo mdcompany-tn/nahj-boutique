@@ -211,12 +211,13 @@ function Profile() {
 /* ------------------------------------------------------------------ */
 
 function NewPassword() {
-  const { updatePassword } = useAuth();
+  const { updatePassword, clearRecovery } = useAuth();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [msg, setMsg] = useState("");
   const [good, setGood] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,6 +228,7 @@ function NewPassword() {
     try {
       await updatePassword(password);
       setGood(true);
+      setDone(true);
       setMsg("Mot de passe mis à jour. Vous êtes connecté.");
     } catch (x) {
       setMsg((x as Error).message);
@@ -240,12 +242,19 @@ function NewPassword() {
       <header className="page-head"><p className="eyebrow">Compte</p><h1 className="display-lg">Nouveau mot de passe</h1></header>
       <div className="acc-wrap">
         <div className="acc-card">
-          <form className="co-form" onSubmit={submit}>
-            <label>Nouveau mot de passe<input type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-            <label>Confirmer<input type="password" autoComplete="new-password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)} /></label>
-            {msg && <p className={good ? "ok" : "err"}>{msg}</p>}
-            <button className="btn" disabled={busy}>{busy ? "Enregistrement…" : "Valider"}</button>
-          </form>
+          {done ? (
+            <>
+              <p className="ok">{msg}</p>
+              <button type="button" className="btn" onClick={clearRecovery}>Continuer vers mon compte</button>
+            </>
+          ) : (
+            <form className="co-form" onSubmit={submit}>
+              <label>Nouveau mot de passe<input type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+              <label>Confirmer<input type="password" autoComplete="new-password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)} /></label>
+              {msg && <p className={good ? "ok" : "err"}>{msg}</p>}
+              <button className="btn" disabled={busy}>{busy ? "Enregistrement…" : "Valider"}</button>
+            </form>
+          )}
         </div>
       </div>
     </div>

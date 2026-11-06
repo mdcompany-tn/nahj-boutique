@@ -95,7 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updatePassword = useCallback(async (password: string) => {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw new Error(authMessage(error.message));
-    setRecovery(false);
   }, []);
 
   const value = useMemo<Ctx>(
