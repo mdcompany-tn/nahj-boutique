@@ -79,7 +79,7 @@ function AuthPanel() {
         </div>
 
         <form className="co-form" onSubmit={submit}>
-          {mode === "forgot" && <p className="muted small">Entrez votre email : nous vous envoyons un lien pour choisir un nouveau mot de passe.</p>}
+          {mode === "forgot" && <p className="muted small">Entrez votre email : nous vous envoyons un lien pour choisir un nouveau mot de passe. Un seul envoi par minute — vérifiez aussi les spams.</p>}
 
           <label>Email
             <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.tn" />
