@@ -59,11 +59,13 @@ Boutique statique (Vite + React) hébergée gratuitement sur **GitHub Pages**, a
    - Le trigger SQL ajoute automatiquement ce compte à la table `admins`.
 
 6. **Authentication → URL Configuration** :
-   - **Site URL** : `https://<utilisateur>.github.io/<repo>/`
+   - **Site URL** : `https://mdcompany-tn.github.io/nahj-boutique/`
    - **Redirect URLs** : ajoutez
-     - `https://<utilisateur>.github.io/<repo>/admin` (mot de passe oublié admin)
-     - `https://<utilisateur>.github.io/<repo>/account` (comptes clients)
-     - `http://localhost:5173/admin` et `http://localhost:5173/account` (développement local)
+     - `https://mdcompany-tn.github.io/nahj-boutique/`
+     - `https://mdcompany-tn.github.io/nahj-boutique/**`
+     - `https://mdcompany-tn.github.io/nahj-boutique/admin` (mot de passe oublié admin)
+     - `https://mdcompany-tn.github.io/nahj-boutique/account` (comptes clients)
+     - `http://localhost:5173/**` (développement local)
 
 7. Vérifiez dans **Storage** que le bucket public **`media`** existe (créé par `03`).
 
@@ -90,15 +92,44 @@ l’ancien accès, supprimez aussi sa ligne dans `public.admins` si elle existe.
 4. Dans **Settings → Secrets and variables → Actions → Variables**, ajoutez :
    - `VITE_SUPABASE_URL` = Project URL
    - `VITE_SUPABASE_ANON_KEY` = anon / publishable key
+   - `VITE_TURNSTILE_SITE_KEY` = site key Cloudflare Turnstile (facultatif, voir plus bas)
 
-   (Ce ne sont pas des secrets : ces valeurs sont visibles dans le site.)
+   (Ce ne sont pas des secrets : ces valeurs sont visibles dans le site. Ne mettez
+   jamais la **secret key** Turnstile ni la `service_role` ici.)
 5. Poussez sur `main` (ou lancez **Actions → Deploy to GitHub Pages → Run workflow**).
-6. Le site est publié sur `https://<utilisateur>.github.io/<repo>/`.
-   L’admin est sur `https://<utilisateur>.github.io/<repo>/admin`.
+6. Le site est publié sur <https://mdcompany-tn.github.io/nahj-boutique/>.
+   L’admin est sur <https://mdcompany-tn.github.io/nahj-boutique/admin>.
 
-Le workflow `.github/workflows/deploy.yml` construit le site avec le bon préfixe
-`/<repo>/`, copie `index.html` en `404.html` (pour les liens directs) et ajoute
-`.nojekyll`.
+Le workflow `.github/workflows/deploy.yml` construit le site avec le préfixe
+`/nahj-boutique/` (déduit du nom du dépôt), copie `index.html` en `404.html`
+(pour les liens directs) et ajoute `.nojekyll`.
+
+### Cloudflare Turnstile (anti-robot, facultatif)
+
+Le captcha est **désactivé par défaut**. Il ne s’active que si la variable
+`VITE_TURNSTILE_SITE_KEY` existe **au moment du build** :
+
+1. Dans le dashboard Cloudflare → **Turnstile** → *Add widget* :
+   - domaine : `mdcompany-tn.github.io`
+   - widget mode : **Managed** (ou *Non-interactive*)
+2. Copiez la **site key** (publique) dans **Settings → Secrets and variables →
+   Actions → Variables** : `VITE_TURNSTILE_SITE_KEY`.
+3. Dans Supabase → **Authentication → Attack Protection** → *Enable CAPTCHA
+   protection* → **Cloudflare Turnstile**, collez la **secret key** (jamais dans
+   le code, jamais dans le dépôt).
+4. Relancez le workflow de déploiement.
+
+Comportement du site :
+
+- Variable absente → **aucun widget affiché**, aucun token envoyé : le site
+  fonctionne normalement (captcha désactivé côté Supabase).
+- Variable présente → widget sur `/account` (connexion, inscription, mot de
+  passe oublié) et `/admin` (connexion) ; le token est transmis à
+  `signUp` / `signInWithPassword` / `resetPasswordForEmail`, puis le widget est
+  réinitialisé après chaque tentative.
+- Si Supabase exige un captcha mais que le token manque, le site affiche un
+  message clair (*« La vérification anti-robot a échoué… »*) au lieu de l’erreur
+  brute `no captcha_token found`.
 
 ---
 
@@ -216,8 +247,10 @@ il contient les anciennes données d’administration. Conservez-le hors du dép
 | Un client ne reçoit pas l’email de confirmation / réinitialisation | Supabase n’envoie par défaut qu’aux membres du projet (2/heure). Désactivez **Confirm email** ou configurez un SMTP (voir étape 4). |
 | Les favoris ne s’enregistrent pas | Exécutez `04-accounts.sql`, puis vérifiez que le client est connecté (le cœur renvoie vers `/account` sinon). |
 | `Connexion requise` sur `/api/wishlist` | Normal pour un visiteur non connecté : les favoris demandent un compte. |
+| `captcha protection: request disallowed (no captcha_token found)` | Le captcha est activé dans Supabase mais le site n’a pas de site key : ajoutez la variable `VITE_TURNSTILE_SITE_KEY` (et la secret key dans Supabase), puis redéployez. Ou désactivez le captcha dans Supabase. |
+| « La vérification anti-robot a échoué » | Le token Turnstile est absent, expiré ou invalide : vérifiez que la site key correspond au widget Cloudflare et que le domaine `mdcompany-tn.github.io` est autorisé. |
 | Lien de réinitialisation invalide | Ajoutez l’URL `/admin` **et** `/account` du site dans **Authentication → URL Configuration → Redirect URLs**. |
 | Images `/media/...` cassées | Bucket `media` manquant ou policy de lecture absente : relancez `03-auth-storage.sql`. |
 | Liens directs 404 sur GitHub Pages | Vérifiez que le workflow copie `index.html` en `404.html` (étape « Prepare GitHub Pages files »). |
-| Le site s’ouvre sans styles | Le build n’a pas le bon préfixe : `VITE_BASE_PATH=/<repo>/`. |
+| Le site s’ouvre sans styles | Le build n’a pas le bon préfixe : `VITE_BASE_PATH=/nahj-boutique/`. |
 | Erreur `relation "admins" already exists` | Vous avez relancé `01-schema-data.sql` : ne l’exécutez qu’une fois, sur un projet vide. |

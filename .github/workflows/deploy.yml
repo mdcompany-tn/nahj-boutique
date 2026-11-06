@@ -36,7 +36,9 @@ jobs:
           # Public values: safe to keep as repository variables (not secrets).
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-          # Project site: https://<user>.github.io/<repo>/
+          # Optional: when empty, the Turnstile widget is not rendered at all.
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          # Project site: https://mdcompany-tn.github.io/nahj-boutique/
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
       - name: Prepare GitHub Pages files

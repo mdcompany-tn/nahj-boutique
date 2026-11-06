@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { sitePath } from "./api";
+import { authMessage } from "./authMessages";
 import { AUTH_LINK_ARRIVAL, supabase } from "./supabase";
 
 /**
@@ -11,6 +12,7 @@ import { AUTH_LINK_ARRIVAL, supabase } from "./supabase";
  * - The session is stored by supabase-js in localStorage and refreshed automatically.
  * - The password-recovery link redirects to /account, where `recovery` switches the
  *   page to the "new password" form.
+ * - `captchaToken` is only sent when Cloudflare Turnstile is configured.
  */
 
 type Ctx = {
@@ -18,10 +20,10 @@ type Ctx = {
   ready: boolean;
   recovery: boolean;
   clearRecovery: () => void;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ needsConfirm: boolean }>;
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<void>;
+  signUp: (email: string, password: string, captchaToken?: string) => Promise<{ needsConfirm: boolean }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, captchaToken?: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
 };
 
@@ -30,21 +32,7 @@ export const useAuth = () => useContext(AuthCtx);
 
 const accountUrl = () => `${window.location.origin}${sitePath("account")}`;
 
-/** French, human-readable messages for the common Supabase Auth errors. */
-export function authMessage(raw: string): string {
-  if (/invalid login credentials/i.test(raw)) return "Email ou mot de passe incorrect.";
-  if (/email not confirmed/i.test(raw)) return "Confirmez votre email avant de vous connecter (vérifiez vos spams).";
-  if (/user already registered|already been registered/i.test(raw)) return "Un compte existe déjà avec cet email. Connectez-vous.";
-  if (/password should be at least/i.test(raw)) return "Le mot de passe doit contenir au moins 6 caractères.";
-  // Supabase enforces a cooldown per email address and an hourly cap per project.
-  const after = raw.match(/after (\d+) seconds?/i);
-  if (after) return `Trop de tentatives. Réessayez dans ${after[1]} seconde${after[1] === "1" ? "" : "s"}.`;
-  if (/email rate limit exceeded|rate limit.*email/i.test(raw)) return "Trop d’emails envoyés pour le moment. Réessayez dans une heure.";
-  if (/rate limit|too many|security purposes/i.test(raw)) return "Trop de tentatives. Réessayez dans quelques minutes.";
-  if (/invalid email|unable to validate email/i.test(raw)) return "Adresse email invalide.";
-  if (/signups? not allowed|signup is disabled/i.test(raw)) return "La création de compte est momentanément fermée.";
-  return raw;
-}
+export { authMessage };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
@@ -80,16 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+  const signIn = useCallback(async (email: string, password: string, captchaToken?: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+      options: captchaToken ? { captchaToken } : undefined,
+    });
     if (error) throw new Error(authMessage(error.message));
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string, captchaToken?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { emailRedirectTo: accountUrl() },
+      options: { emailRedirectTo: accountUrl(), ...(captchaToken ? { captchaToken } : {}) },
     });
     if (error) throw new Error(authMessage(error.message));
     // Supabase returns an empty identities array when the email is already used
@@ -104,8 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRecovery(false);
   }, []);
 
-  const resetPassword = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: accountUrl() });
+  const resetPassword = useCallback(async (email: string, captchaToken?: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: accountUrl(),
+      ...(captchaToken ? { captchaToken } : {}),
+    });
     if (error) throw new Error(authMessage(error.message));
   }, []);
 

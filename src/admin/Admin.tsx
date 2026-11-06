@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Route, Routes, Link } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { api, sitePath } from "../api";
 import { supabase } from "../supabase";
+import { authMessage, CAPTCHA_PENDING } from "../authMessages";
+import { Turnstile, type TurnstileHandle } from "../components/Turnstile";
+import { TURNSTILE_ENABLED } from "../turnstile";
 import Dashboard from "./Dashboard";
 import Orders from "./Orders";
 import Products from "./Products";
@@ -13,38 +16,44 @@ import Content from "./Content";
 import { Zones, Codes, Reviews, Messages, Subscribers } from "./Misc";
 import "./admin.css";
 
-function authMessage(message: string): string {
-  if (/invalid login credentials/i.test(message)) return "Email ou mot de passe incorrect.";
-  if (/email not confirmed/i.test(message)) return "Email pas encore confirmé. Ouvrez le lien reçu par email.";
-  if (/rate limit|too many/i.test(message)) return "Trop de tentatives. Réessayez dans quelques minutes.";
-  return message;
-}
-
 function AuthScreen({ onUser }: { onUser: (u: User) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const captcha = useRef<TurnstileHandle>(null);
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); setMsg(""); setBusy(true);
+    e.preventDefault(); setMsg("");
+    const captchaToken = TURNSTILE_ENABLED ? captcha.current?.token() ?? "" : undefined;
+    if (TURNSTILE_ENABLED && !captchaToken) { setMsg(CAPTCHA_PENDING); return; }
+    setBusy(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+        options: captchaToken ? { captchaToken } : undefined,
+      });
       if (error) throw error;
       if (data.user) onUser(data.user);
     } catch (x) {
       setMsg(authMessage((x as Error).message));
     } finally {
       setBusy(false);
+      captcha.current?.reset();
     }
   };
 
   const forgot = async () => {
     setMsg("");
     if (!email.trim()) { setMsg("Entrez d'abord votre email."); return; }
+    const captchaToken = TURNSTILE_ENABLED ? captcha.current?.token() ?? "" : undefined;
+    if (TURNSTILE_ENABLED && !captchaToken) { setMsg(CAPTCHA_PENDING); return; }
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}${sitePath("admin")}`,
+      ...(captchaToken ? { captchaToken } : {}),
     });
+    captcha.current?.reset();
     setMsg(error ? authMessage(error.message) : "Email de réinitialisation envoyé. Ouvrez le lien reçu.");
   };
 
@@ -55,6 +64,7 @@ function AuthScreen({ onUser }: { onUser: (u: User) => void }) {
         <h1>Espace administrateur</h1>
         <label>Email<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label>Mot de passe<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+        <Turnstile ref={captcha} theme="dark" />
         {msg && <p className={msg.startsWith("Email de réinitialisation") ? "adm-ok" : "adm-err"}>{msg}</p>}
         <button className="adm-btn" disabled={busy}>{busy ? "Connexion…" : "Se connecter"}</button>
         <button type="button" className="adm-link" onClick={forgot}>Mot de passe oublié</button>

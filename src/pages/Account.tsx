@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, money } from "../api";
 import { useAuth } from "../auth";
 import { useStore } from "../store";
 import ProductCard from "../components/ProductCard";
+import { Turnstile, type TurnstileHandle } from "../components/Turnstile";
+import { CAPTCHA_PENDING } from "../authMessages";
+import { TURNSTILE_ENABLED } from "../turnstile";
 import { OrderDetails, STATUS } from "./Order";
 import "./account.css";
 
@@ -40,26 +43,33 @@ function AuthPanel() {
   const [msg, setMsg] = useState("");
   const [good, setGood] = useState(false);
   const [busy, setBusy] = useState(false);
+  const captcha = useRef<TurnstileHandle>(null);
 
-  const switchTo = (m: Mode) => { setMode(m); setMsg(""); setGood(false); setPassword(""); setConfirm(""); };
+  const switchTo = (m: Mode) => {
+    setMode(m); setMsg(""); setGood(false); setPassword(""); setConfirm("");
+    captcha.current?.reset();
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMsg(""); setGood(false); setBusy(true);
+    setMsg(""); setGood(false);
+    const captchaToken = TURNSTILE_ENABLED ? captcha.current?.token() ?? "" : undefined;
+    if (TURNSTILE_ENABLED && !captchaToken) { setMsg(CAPTCHA_PENDING); return; }
+    setBusy(true);
     try {
       if (mode === "login") {
-        await signIn(email, password);
+        await signIn(email, password, captchaToken);
       } else if (mode === "signup") {
         if (password.length < 8) throw new Error("8 caractères minimum.");
         if (password !== confirm) throw new Error("Les deux mots de passe ne correspondent pas.");
-        const r = await signUp(email, password);
+        const r = await signUp(email, password, captchaToken);
         if (r.needsConfirm) {
           switchTo("login");
           setGood(true);
           setMsg("Compte créé. Vérifiez votre email pour confirmer votre adresse, puis connectez-vous.");
         }
       } else {
-        await resetPassword(email);
+        await resetPassword(email, captchaToken);
         setGood(true);
         setMsg("Email de réinitialisation envoyé. Ouvrez le lien reçu (vérifiez aussi les spams).");
       }
@@ -67,6 +77,7 @@ function AuthPanel() {
       setMsg((x as Error).message);
     } finally {
       setBusy(false);
+      captcha.current?.reset();
     }
   };
 
@@ -96,6 +107,8 @@ function AuthPanel() {
               <input type="password" autoComplete="new-password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
             </label>
           )}
+
+          <Turnstile ref={captcha} />
 
           {msg && <p className={good ? "ok" : "err"}>{msg}</p>}
 

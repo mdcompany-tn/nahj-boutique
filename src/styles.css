@@ -293,3 +293,7 @@ p{margin:.5em 0}.muted{opacity:1;color:var(--ink-soft)}
 .hero-reel-play{width:36px;height:36px;box-shadow:0 0 0 4px #fff3}
 .hero-reel-play svg{width:16px;height:16px}
 }
+
+/* Cloudflare Turnstile slot (login / signup / password reset). */
+.ts-slot{display:flex;justify-content:center;margin:6px 0 2px}
+.ts-slot:empty{display:none}
