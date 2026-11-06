@@ -2,6 +2,10 @@
 export function authMessage(raw: string): string {
   // Cloudflare Turnstile (Supabase > Attack Protection).
   if (/captcha/i.test(raw)) return "La vérification anti-robot a échoué. Rechargez la page et réessayez.";
+  // SMTP down / not configured: Supabase cannot deliver the confirmation or reset email.
+  if (/error sending (confirmation|recovery|invite|magic link|email)|error sending email|unable to send email/i.test(raw)) {
+    return "Impossible d’envoyer l’email pour le moment. Réessayez dans quelques minutes.";
+  }
   if (/invalid login credentials/i.test(raw)) return "Email ou mot de passe incorrect.";
   if (/email not confirmed/i.test(raw)) return "Confirmez votre email avant de vous connecter (vérifiez vos spams).";
   if (/user already registered|already been registered/i.test(raw)) return "Un compte existe déjà avec cet email. Connectez-vous.";

@@ -245,6 +245,7 @@ il contient les anciennes données d’administration. Conservez-le hors du dép
 | `Accès refusé` sur `/admin` | L’email du compte n’est pas dans `admin_emails` ; vérifiez la table et reconnectez-vous. |
 | `Email ou mot de passe incorrect` | Compte créé dans Supabase Auth ? Email confirmé ? |
 | Un client ne reçoit pas l’email de confirmation / réinitialisation | Supabase n’envoie par défaut qu’aux membres du projet (2/heure). Désactivez **Confirm email** ou configurez un SMTP (voir étape 4). |
+| `Error sending confirmation email` / « Impossible d’envoyer l’email » | SMTP absent ou refusé par le fournisseur. Le plus rapide : **Authentication → Providers → Email → Confirm email = OFF** (l’inscription connecte directement). Pour les emails de réinitialisation, configurez un SMTP valide (sender vérifié, mot de passe d’application) puis testez avec *Send test email*. |
 | Les favoris ne s’enregistrent pas | Exécutez `04-accounts.sql`, puis vérifiez que le client est connecté (le cœur renvoie vers `/account` sinon). |
 | `Connexion requise` sur `/api/wishlist` | Normal pour un visiteur non connecté : les favoris demandent un compte. |
 | `captcha protection: request disallowed (no captcha_token found)` | Le captcha est activé dans Supabase mais le site n’a pas de site key : ajoutez la variable `VITE_TURNSTILE_SITE_KEY` (et la secret key dans Supabase), puis redéployez. Ou désactivez le captcha dans Supabase. |
