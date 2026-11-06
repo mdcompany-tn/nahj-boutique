@@ -15,6 +15,17 @@ export const SUPABASE_ANON_KEY = rawKey || "placeholder-anon-key";
 export const SUPABASE_CONFIGURED = Boolean(rawUrl && rawKey);
 export const MEDIA_BUCKET = "media";
 
+/**
+ * True when the page was opened from a Supabase auth link (email confirmation,
+ * password recovery, magic link). Captured before createClient() consumes the
+ * tokens, so the app can then route the customer to /account.
+ */
+const initialHash = typeof window !== "undefined" ? window.location.hash : "";
+const initialSearch = typeof window !== "undefined" ? window.location.search : "";
+export const AUTH_LINK_ARRIVAL =
+  /(^|[#&])(access_token|error_description|type)=/.test(initialHash) ||
+  /[?&](code|error_description)=/.test(initialSearch);
+
 if (!SUPABASE_CONFIGURED) {
   console.error(
     "Supabase n'est pas configuré : définissez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY (voir README.md).",

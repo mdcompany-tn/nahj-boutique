@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { sitePath } from "./api";
-import { supabase } from "./supabase";
+import { AUTH_LINK_ARRIVAL, supabase } from "./supabase";
 
 /**
  * Customer accounts (separate from the owner's /admin login).
@@ -46,9 +47,21 @@ export function authMessage(raw: string): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [recovery, setRecovery] = useState(false);
+
+  // Confirmation / recovery emails can land on the site root when Supabase falls
+  // back to its Site URL. Once the session is restored, put the customer on
+  // /account (new password screen included) instead of leaving them on the home page.
+  useEffect(() => {
+    if (!ready || !AUTH_LINK_ARRIVAL) return;
+    const target = sitePath("account").replace(/\/+$/, "");
+    if (window.location.pathname.replace(/\/+$/, "") !== target) {
+      navigate("/account", { replace: true });
+    }
+  }, [ready, navigate]);
 
   useEffect(() => {
     let alive = true;
