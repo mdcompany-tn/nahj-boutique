@@ -14,10 +14,10 @@ create table if not exists public.admin_emails (
 alter table public.admin_emails enable row level security;
 revoke all on public.admin_emails from anon, authenticated;
 
--- Replace with YOUR owner email before running this file.
-insert into public.admin_emails (email)
-values ('owner@example.com')
-on conflict (email) do nothing;
+-- Add the real owner address from the SQL Editor, for example:
+--   insert into public.admin_emails (email) values ('ton-email@exemple.com');
+-- Never seed a placeholder here: with "Confirm email" disabled, anyone could
+-- sign up with that address and become admin.
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -1551,6 +1551,12 @@ $$;
 revoke all on function public.api(text, text, jsonb, jsonb) from public;
 grant execute on function public.api(text, text, jsonb, jsonb) to anon, authenticated;
 
+-- Supabase also grants EXECUTE on new functions directly to anon and
+-- authenticated, so revoking from "public" alone is not enough: every
+-- internal function must be revoked from all three roles explicitly.
+-- handle_new_user() and the wishlist helpers are revoked again in 03 and 04
+-- right after their creation; they are listed here too so this file also
+-- protects an existing database when it is re-run on its own.
 do $$
 declare
   f record;
@@ -1563,13 +1569,14 @@ begin
       and p.proname in (
         'store_data','product_list','product_get','order_quote','order_create',
         'order_track','my_orders','submit_form','price_cart','save_variants',
-        'wish_list','wish_toggle',
-        'is_admin','slugify','client_ip','product_json','product_json_admin','order_public_json')
+        'admin_api','is_admin','slugify','client_ip','product_json',
+        'product_json_admin','order_public_json',
+        'handle_new_user','wish_list','wish_toggle')
   loop
-    execute format('revoke all on function %s from public', f.sig);
+    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
   end loop;
 end $$;
 
+-- Storage policies in 03 call public.is_admin(): RLS runs as the caller's
+-- role, so authenticated needs EXECUTE on that single helper.
 grant execute on function public.is_admin() to authenticated;
-grant execute on function public.slugify(text) to anon, authenticated;
-grant execute on function public.client_ip() to anon, authenticated;

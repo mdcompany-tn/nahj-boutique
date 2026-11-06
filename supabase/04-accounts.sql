@@ -92,8 +92,9 @@ end;
 $$;
 
 -- Internal only: the public site reaches these through public.api().
-revoke all on function public.wish_list() from public;
-revoke all on function public.wish_toggle(int) from public;
+-- Supabase grants EXECUTE directly to anon/authenticated, so revoke there too.
+revoke all on function public.wish_list() from public, anon, authenticated;
+revoke all on function public.wish_toggle(int) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Orders placed while signed in are already linked by 02 (orders.user_id) and

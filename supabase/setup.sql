@@ -532,10 +532,10 @@ create table if not exists public.admin_emails (
 alter table public.admin_emails enable row level security;
 revoke all on public.admin_emails from anon, authenticated;
 
--- Replace with YOUR owner email before running this file.
-insert into public.admin_emails (email)
-values ('owner@example.com')
-on conflict (email) do nothing;
+-- Add the real owner address from the SQL Editor, for example:
+--   insert into public.admin_emails (email) values ('ton-email@exemple.com');
+-- Never seed a placeholder here: with "Confirm email" disabled, anyone could
+-- sign up with that address and become admin.
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -2069,6 +2069,12 @@ $$;
 revoke all on function public.api(text, text, jsonb, jsonb) from public;
 grant execute on function public.api(text, text, jsonb, jsonb) to anon, authenticated;
 
+-- Supabase also grants EXECUTE on new functions directly to anon and
+-- authenticated, so revoking from "public" alone is not enough: every
+-- internal function must be revoked from all three roles explicitly.
+-- handle_new_user() and the wishlist helpers are revoked again in 03 and 04
+-- right after their creation; they are listed here too so this file also
+-- protects an existing database when it is re-run on its own.
 do $$
 declare
   f record;
@@ -2081,16 +2087,17 @@ begin
       and p.proname in (
         'store_data','product_list','product_get','order_quote','order_create',
         'order_track','my_orders','submit_form','price_cart','save_variants',
-        'wish_list','wish_toggle',
-        'is_admin','slugify','client_ip','product_json','product_json_admin','order_public_json')
+        'admin_api','is_admin','slugify','client_ip','product_json',
+        'product_json_admin','order_public_json',
+        'handle_new_user','wish_list','wish_toggle')
   loop
-    execute format('revoke all on function %s from public', f.sig);
+    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
   end loop;
 end $$;
 
+-- Storage policies in 03 call public.is_admin(): RLS runs as the caller's
+-- role, so authenticated needs EXECUTE on that single helper.
 grant execute on function public.is_admin() to authenticated;
-grant execute on function public.slugify(text) to anon, authenticated;
-grant execute on function public.client_ip() to anon, authenticated;
 
 -- ############################################################################
 -- ## 03-auth-storage.sql
@@ -2104,11 +2111,14 @@ grant execute on function public.client_ip() to anon, authenticated;
 --   * The public site can only execute public.api(...).
 --   * Direct table access is blocked by RLS (no policies at all).
 --   * /admin works only for accounts whose email is in admin_emails.
---   * Public sign-up is disabled in Supabase (Authentication > Providers > Email).
+--   * Customer sign-up is open; admin access is limited to admin_emails.
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- Owner allowlist — CHANGE THIS EMAIL if needed, then sign in once with it.
+-- Owner allowlist — add the real owner email from the SQL Editor, e.g.
+--   insert into public.admin_emails (email) values ('ton-email@exemple.com');
+-- then sign in once with it. No placeholder is seeded on purpose: with
+-- "Confirm email" disabled, anyone could sign up with it and become admin.
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.admin_emails (
@@ -2117,11 +2127,6 @@ create table if not exists public.admin_emails (
 
 alter table public.admin_emails enable row level security;
 revoke all on public.admin_emails from anon, authenticated;
-
--- Replace with YOUR owner email before running this file.
-insert into public.admin_emails (email)
-values ('owner@example.com')
-on conflict (email) do nothing;
 
 -- Accept both text and uuid ids from older imports: the API compares as text.
 alter table public.admins alter column user_id type text using user_id::text;
@@ -2147,6 +2152,9 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Internal trigger function: nobody may call it through the REST API.
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 
 -- Backfill: allowlisted accounts that already exist.
 insert into public.admins (user_id, email, is_owner)
@@ -2313,8 +2321,9 @@ end;
 $$;
 
 -- Internal only: the public site reaches these through public.api().
-revoke all on function public.wish_list() from public;
-revoke all on function public.wish_toggle(int) from public;
+-- Supabase grants EXECUTE directly to anon/authenticated, so revoke there too.
+revoke all on function public.wish_list() from public, anon, authenticated;
+revoke all on function public.wish_toggle(int) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Orders placed while signed in are already linked by 02 (orders.user_id) and

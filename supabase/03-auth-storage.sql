@@ -6,11 +6,14 @@
 --   * The public site can only execute public.api(...).
 --   * Direct table access is blocked by RLS (no policies at all).
 --   * /admin works only for accounts whose email is in admin_emails.
---   * Public sign-up is disabled in Supabase (Authentication > Providers > Email).
+--   * Customer sign-up is open; admin access is limited to admin_emails.
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- Owner allowlist — CHANGE THIS EMAIL if needed, then sign in once with it.
+-- Owner allowlist — add the real owner email from the SQL Editor, e.g.
+--   insert into public.admin_emails (email) values ('ton-email@exemple.com');
+-- then sign in once with it. No placeholder is seeded on purpose: with
+-- "Confirm email" disabled, anyone could sign up with it and become admin.
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.admin_emails (
@@ -19,11 +22,6 @@ create table if not exists public.admin_emails (
 
 alter table public.admin_emails enable row level security;
 revoke all on public.admin_emails from anon, authenticated;
-
--- Replace with YOUR owner email before running this file.
-insert into public.admin_emails (email)
-values ('owner@example.com')
-on conflict (email) do nothing;
 
 -- Accept both text and uuid ids from older imports: the API compares as text.
 alter table public.admins alter column user_id type text using user_id::text;
@@ -49,6 +47,9 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Internal trigger function: nobody may call it through the REST API.
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 
 -- Backfill: allowlisted accounts that already exist.
 insert into public.admins (user_id, email, is_owner)

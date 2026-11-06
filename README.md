@@ -46,7 +46,13 @@ Boutique statique (Vite + React) hébergée gratuitement sur **GitHub Pages**, a
      `re_...`). Réactivez ensuite **Confirm email** si vous le souhaitez.
 
 5. **Authentication → Users → Add user** :
-   - Email : `***********@gmail.com` (ou celui défini dans `admin_emails`)
+   - Ajoutez d’abord l’email propriétaire à l’allowlist dans le SQL Editor
+     (les scripts ne préremplissent **aucun** email, pour éviter qu’un
+     visiteur puisse s’inscrire avec et devenir admin) :
+     ```sql
+     insert into public.admin_emails (email) values ('votre-email@exemple.com');
+     ```
+   - Email : `***********@gmail.com` (le même que ci-dessus)
    - Mot de passe : choisissez-en un solide
    - Cochez **Auto Confirm User**
    - Le trigger SQL ajoute automatiquement ce compte à la table `admins`.
