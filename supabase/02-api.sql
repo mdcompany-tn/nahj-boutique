@@ -14,6 +14,7 @@ create table if not exists public.admin_emails (
 alter table public.admin_emails enable row level security;
 revoke all on public.admin_emails from anon, authenticated;
 
+-- Replace with YOUR owner email before running this file.
 insert into public.admin_emails (email)
 values ('owner@example.com')
 on conflict (email) do nothing;
